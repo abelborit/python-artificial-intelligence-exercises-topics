@@ -1,0 +1,189 @@
+<!-- FUENTE DEL EJERCICIO: https://www.youtube.com/watch?v=huPO8RxvuEo&ab_channel=RingaTech -->
+<!-- OTRO EJERCICIO: https://www.youtube.com/watch?v=AwTH_0yW9_I&ab_channel=RingaTech -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Convoluciones</title>
+  </head>
+  <body>
+    <!-- lugar donde vamos a cargar la imagen, este canvas será como el canvas fuente que se usará solo para pasar la imagen a blanco y negro. Usar el canvas es una manera que nos da HTML para poder hacer por ejemplo dibujos pero la razón por la cual lo estamos usando es que nos permite hacer manipulación de pixeles. Canvas tiene diferentes contextos como 2D o 3D pero ahora solo usaremos el de 2D -->
+    <canvas id="canvasHTML"></canvas>
+
+    <!-- este canvas será quien tendrá el resultado de las convoluciones -->
+    <canvas id="canvasResults"></canvas>
+
+    <script type="text/javascript">
+      /* definir una variable de tipo imagen */
+      let imageHTML = new Image();
+      /* new Image() tiene un método onload y esta se llamará una vez que la imagen se haya terminado de cargar y entonces una vez que termine de cargar se harán los procesos de convolución */
+      imageHTML.onload = imageLoaded;
+      // imageHTML.src = "./persona.jpg"; // 700x598 = 418,600 pixeles
+      imageHTML.src = "./persona1.jpg"; // 600x398 = 238,800 pixeles
+
+      /* una vez que la imagen ya cargó se colocará la imagen dentro del canvas */
+      function imageLoaded() {
+        console.log("imageLoaded");
+        let canvasHTML = document.getElementById("canvasHTML");
+        let canvasResults = document.getElementById("canvasResults");
+
+        /* obtener el contexto del canvas y este contexto nos dará funciones para colocar u obtener ciertos pixeles, etc */
+        let canvasHTMLContext = canvasHTML.getContext("2d");
+
+        /* colocarle un tamaño al canvas porque inicialmente no tiene un tamaño, entonces hay que colocarle un tamaño apropiado */
+        canvasHTML.width = imageHTML.width;
+        canvasHTML.height = imageHTML.height;
+
+        /* tomar la imagen y colocarla en el canvas usando drawImage(imagen, distancia_eje_x, distancia_eje_y, ancho_imagen, alto_imagen) */
+        canvasHTMLContext.drawImage(
+          imageHTML,
+          0,
+          0,
+          imageHTML.width,
+          imageHTML.height
+        );
+
+        /* pasaremos la imagen a blanco y negro porque en este ejemplo queremos ver cómo es la lógica básica de las convoluciones (colocar núcleo o el kernel, hacer la multiplicación, hacer la suma, traer las magnitudes, etc) y que cuando se hace la detección de ejes casi siempre se pasa a blanco y negro ya que tener la imagen a colores agregaría más capas de complejidad al ejercicio lo cual al final es lo mismo solo que la imagen a colores agregaría esa complejidad haciendo uso de los diferentes canales de color */
+        setTimeout(() => {
+          changeBlackAndWhite(canvasHTML);
+          convolutions(canvasHTML, canvasResults);
+        }, 1500);
+      }
+
+      function changeBlackAndWhite(canvasInput) {
+        console.log("changeBlackAndWhite");
+        /* obtener el contexto del canvasInput y este contexto nos dará funciones para colocar u obtener ciertos pixeles, etc */
+        let canvasInputContext = canvasInput.getContext("2d");
+
+        /* obtener los image data (todos los pixeles que se están usando en el canvas o todos los pixeles que tiene el canvas que en este caso será la imagen, es decir, tendrá todos los pixeles de la imagen) usando getImageData(distancia_eje_x, distancia_eje_y, ancho_canvas, alto_canvas) */
+        let imageDataInput = canvasInputContext.getImageData(
+          0,
+          0,
+          canvasInput.width,
+          canvasInput.height
+        );
+        let imagePixelesInput = imageDataInput.data;
+
+        /* la imagen de persona.jpg tiene una resolución de ancho de 700px con un alto de 598px (700 x 598) entonces calculando los pixeles de la imagen serían (700 x 598 = 418,600 pixeles) entonces nosotros esperaríamos que image.data sea un arreglo con 418,600 posiciones y cada posición que tenga un pixel pero según imagedata.data usando getImageData(...) nos da un arreglo de 1,674,400 posiciones cada uno con un pixel pero ¿Por qué?. Si multiplicamos (418,600 x 4 = 1,674,400) y se multiplica por 4 porque como se está usando JavaScript lo que debería de hacer es [[#red, #green, #blue, #alpha], [#red, #green, #blue, #alpha], .....] y que cada arreglo sea un posición pero lo que hace es tenerlo todo junto y cada elemento es una posición [#red, #green, #blue, #alpha, #red, #green, #blue, #alpha, .....] entonces lo que se tiene que hacer para iterar sería iterar sobre el arreglo y dividirlo en grupos de 4 elementos para que cada grupo sea un pixel de la imagen */
+        // console.log(imageDataInput);
+        // console.log(imagePixelesInput);
+
+        /* se coloca con i += 4 porque como queremos que avance de 4 en 4 elementos para poder juntar ese grupo en un solo elemento */
+        for (let i = 0; i < imagePixelesInput.length; i += 4) {
+          let imagePixelInputRed = imagePixelesInput[i];
+          let imagePixelInputGreen = imagePixelesInput[i + 1];
+          let imagePixelInputBlue = imagePixelesInput[i + 2];
+          let imagePixelInputAlpha = imagePixelesInput[i + 3];
+
+          /* sacar el promedio de la colorización para colocarlo en una variable que será el gris */
+          let imagePixelGrey =
+            (imagePixelInputRed + imagePixelInputGreen + imagePixelInputBlue) /
+            3;
+
+          /* asignar a los pixeles con el mismo color de gris que se obtuvo */
+          imagePixelesInput[i] = imagePixelGrey;
+          imagePixelesInput[i + 1] = imagePixelGrey;
+          imagePixelesInput[i + 2] = imagePixelGrey;
+        }
+
+        /* una vez que ya se cambiaron los colores de los pixeles entonces tenemos que volver a pintar el contexto */
+        canvasInputContext.putImageData(imageDataInput, 0, 0);
+      }
+
+      function convolutions(canvasInput, canvasOutput) {
+        console.log("convolutions");
+        /* obtener variables necesarias tanto del canvasInput (canvas fuente) como del canvasOutput (donde estarán los resultados de las convoluciones) */
+        let canvasInputContext = canvasInput.getContext("2d");
+        let imageDataInput = canvasInputContext.getImageData(
+          0,
+          0,
+          canvasInput.width,
+          canvasInput.height
+        );
+        let imagePixelesInput = imageDataInput.data;
+
+        /* asegurarnos primero que el canvasOutput tengan el mismo tamaño que el canvasInput */
+        canvasOutput.width = canvasInput.width;
+        canvasOutput.height = canvasInput.height;
+
+        let canvasOutputContext = canvasOutput.getContext("2d");
+        let imageDataOutput = canvasOutputContext.getImageData(
+          0,
+          0,
+          canvasOutput.width,
+          canvasOutput.height
+        );
+        let imagePixelesOutput = imageDataOutput.data;
+
+        let sobelVertical = [
+          [-1, 0, 1],
+          [-2, 0, 2],
+          [-1, 0, 1],
+        ];
+
+        let sobelHorizontal = [
+          [-1, -2, -1],
+          [0, 0, 0],
+          [1, 2, 1],
+        ];
+
+        /* iterar ya no en el canvas directamente, de ahí sacamos los pixeles, obtuvimos el color gris y luego nuevamnete lo volvimos a pintar, pero la iteración que haremos ahora será en el ancho y alto pero del canvas */
+        /* aquí se coloca para que "y" empiece en 1 y "x" empiece en 1 para no utilizar el borde del canvas ya que al usar este kernel entonces forma un cuadrado de 3x3 y si como elemento central colocamos el elemento que está en la esquina superior izquierda entonces la primera fila y la primera columna no tendrá es por eso que se prefiere evitar comenzar desde ahí (hay formas de solucionarlo pero en este caso para evitarnos más complejidad solo haremos que empieza un pixel más abajo y un pixel más a la derecha) y con "y < canvasInput.height - 1" y con "x < canvasInput.width - 1" nos evitamos que tomen esos elementos finales tanto en el alto como en el ancho */
+        for (let y = 1; y < canvasInput.height - 1; y++) {
+          for (let x = 1; x < canvasInput.width - 1; x++) {
+            /* posición en el arreglo JavaScript */
+            let index = (y * canvasInput.width + x) * 4;
+
+            /* antes de convolucionar vamos a copiar todo lo del canvasInput en el canvasOutput para corroborar que todo está bien como las posiciones, etc. Como todo está bien entonces vamos a comentar este código para empezar con las convoluciones */
+            // imagePixelesOutput[index] = imagePixelesInput[index]; // red
+            // imagePixelesOutput[index + 1] = imagePixelesInput[index + 1]; // green
+            // imagePixelesOutput[index + 2] = imagePixelesInput[index + 2]; // blue
+            // imagePixelesOutput[index + 3] = imagePixelesInput[index + 3]; // alpha
+
+            /* empezar con la convolución de forma optimizada */
+            let resultadoY = 0;
+            let resultadoX = 0;
+
+            for (let kernelY = 0; kernelY < 3; kernelY++) {
+              for (let kernelX = 0; kernelX < 3; kernelX++) {
+                /* recordar que estamos tomando el elemento central, es por eso que si quiero la casilla superior izquierda entonces tengo que restarle una posición al eje x y una posición al eje y para que me de la casilla superior izquierda y se coloca imagePixelesInput[....] para que me de el valor que tiene en esa posición */
+                /* se coloca como (y + (kernelX-1)) y (x + (kernelX - 1)) para que puede empezar desde el -1 luego 0 luego 1 ya que si no entonces sería 0 luego 1 luego 2 */
+                resultadoY +=
+                  sobelVertical[kernelY][kernelX] *
+                  imagePixelesInput[
+                    ((y + (kernelX - 1)) * canvasInput.width +
+                      (x + (kernelX - 1))) *
+                      4
+                  ];
+
+                resultadoX +=
+                  sobelHorizontal[kernelY][kernelX] *
+                  imagePixelesInput[
+                    ((y + (kernelX - 1)) * canvasInput.width +
+                      (x + (kernelX - 1))) *
+                      4
+                  ];
+              }
+            }
+
+            /* usando sobelVertical y sobelHorizontal */
+            let magnitud = Math.sqrt(
+              resultadoY * resultadoY + resultadoX * resultadoX
+            );
+
+            /* al usar límites vemos que se pueden quitar un poco los artefactos (detalles adicionales que tiene la imagen o también se puede entender como que el elemento central tiene detalles a su alrededor). El 50 se puede cambiar por cualquier otro valor  */
+            magnitud = magnitud < 50 ? 0 : magnitud; // usando límites o threshold
+
+            imagePixelesOutput[index] = magnitud; // red
+            imagePixelesOutput[index + 1] = magnitud; // green
+            imagePixelesOutput[index + 2] = magnitud; // blue
+            imagePixelesOutput[index + 3] = 255; // alpha
+          }
+        }
+
+        canvasOutputContext.putImageData(imageDataOutput, 0, 0);
+      }
+    </script>
+  </body>
+</html>
