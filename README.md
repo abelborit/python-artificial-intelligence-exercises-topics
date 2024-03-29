@@ -7,3 +7,4 @@
 - **Red Neuronal Básica usando Tensorflow** -- _Basic Neural Network using Tensorflow_
 - **Visión Computacional - Convoluciones con Kernel Detector de Ejes y Kernel de Enfoque** -- _Computer Vision Convolutions with Kernel_
 - **Visión Computacional - Convoluciones con Sobel Vertical y Sobel Horizontal** -- _Computer Vision Convolutions with Sobel_
+- **Clasificación de imágenes con Python y Tensorflow - Redes Densas** -- _Image Classification with Python and Tensorflow - Dense Networks_
