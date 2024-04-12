@@ -13,3 +13,5 @@
 
 - **Obtención del histograma de una imagen** -- _Obtaining Histogram of an image_
 - **Ecualización del histograma de una imagen** -- _Equalization of a Histogram of an image_
+- **Suma y Resta de Imágenes** -- _Addition and Subtraction of images_
+- **Ajuste de Brillo y Contraste de imágenes** -- _Adjustment Brightness and Contrast of images_
